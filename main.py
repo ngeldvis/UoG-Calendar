@@ -24,14 +24,20 @@ class Event:
     def __str__(self) -> str:
         return f'{self.date} - {self.title}'
 
+    def __repr__(self) -> str:
+        return f"'{self.date}':'{self.title}'"
+
 
 def filter_table(table: dict) -> bool:
-    if 'D.V.M.' in table['title'] or '6 Week Format' in table['title'] or 'Session' in table['title']:
-        return False
+    phrases_to_filter = ['D.V.M.', '6 Week Format', 'Session']
+    for phrase in phrases_to_filter:
+        if phrase in table['title']:
+            return False
     return True
 
 
 def get_year(title: str) -> int:
+    # return the first string that casts to a int successfully
     for string in title.split():
         try:
             return int(string)
@@ -50,10 +56,10 @@ def get_events(driver: WebDriver) -> list[Event]:
         'year': get_year(raw_headers[i].text)
     } for i in range(len(raw_tables))]
 
+    # get rid of unwanted tables
     data = filter(filter_table, unfiltered_data)
 
     events = []
-
     for table in data:
         rows = table['table'].find_elements_by_css_selector('tbody tr')
         for row in rows:

@@ -1,31 +1,22 @@
-import dateutil.parser as date_parser
-import os.path
-
 from time import sleep
-from typing import List
 
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.webdriver import WebDriver
 
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account
+
+from .event import Event
+
+# from googleapiclient.discovery import build
+# from google_auth_oauthlib.flow import InstalledAppFlow
+# from google.auth.transport.requests import Request
+# from google.oauth2.credentials import Credentials
 
 GUELPH_CALENDAR_URL = 'https://calendar.uoguelph.ca/undergraduate-calendar/schedule-dates/'
+GOOGLE_CAL_API_KEY = 'AIzaSyBc1zvQYjU-1CwSQ89WTb2cOnffjbsLLu4'
 SCOPES = ['https://www.googleapis.com/auth/calendar']
+SERVICE_ACCOUNT_FILE = 'service_account.json'
 
-class Event:
-    def __init__(self, date: str, title: str) -> None:
-        self.date = date_parser.parse(date)
-        self.title = title
-
-    def __str__(self) -> str:
-        return f'{self.date} - {self.title}'
-
-    def __repr__(self) -> str:
-        return f"'{self.date}':'{self.title}'"
 
 
 def filter_table(table: dict) -> bool:
@@ -46,7 +37,7 @@ def get_year(title: str) -> int:
     return 0
 
 
-def get_events(driver: WebDriver) -> list[Event]:
+def get_events(driver: WebDriver) -> list:
     raw_tables = driver.find_elements_by_css_selector('.tbl_calendar')
     raw_headers = driver.find_elements_by_css_selector('.page_content h2')[1:]
 
@@ -73,7 +64,7 @@ def get_events(driver: WebDriver) -> list[Event]:
 
 
 def get_credentials():
-    creds = Credentials.from_authorized_user_file('credentials.json', SCOPES)
+    return service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 
 
 def main() -> None:
@@ -81,12 +72,12 @@ def main() -> None:
     opts.headless = True
     driver = webdriver.Chrome(options=opts)
     driver.get(GUELPH_CALENDAR_URL)
+
     sleep(1)
 
-    creds = get_credentials()
-
+    # creds = get_credentials()
     events = get_events(driver)
-
+    
     for e in events:
         event = {
             'summary': e.title,
@@ -97,6 +88,7 @@ def main() -> None:
                 'date': e.date.isoformat()
             }
         }
+        print(event)
 
 
 if __name__ == '__main__':

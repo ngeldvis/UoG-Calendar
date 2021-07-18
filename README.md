@@ -7,6 +7,7 @@ Web scraper to gets events from the University of Guelph's [Schedule of Dates](h
 - Python 3+
 
 ```bash
+# install all required dependancies
 $ pip install -r requirements.txt
 ```
 

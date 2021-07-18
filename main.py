@@ -1,5 +1,7 @@
+import os
 import os.path
 
+from dotenv import load_dotenv
 from typing import List
 
 from googleapiclient.discovery import build
@@ -11,8 +13,12 @@ import scraper
 from classes.event import Event
 
 
+load_dotenv()
+
+
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 CLIENT_SCRET_FILE = 'credentials.json'
+CALENDAR_ID = os.getenv('CALENDAR_ID')
 
 
 # get google OAuth2 credentials to access google calendar api
@@ -39,7 +45,7 @@ def get_credentials():
 # * param: event - event dictionary containing relevant event information
 # * param: service - google OAuth2 service client to access calendar
 def publish_event(event: dict, service) -> None:
-    created_event = service.events().insert(calendarId='primary', body=event).execute()
+    created_event = service.events().insert(calendarId=CALENDAR_ID, body=event).execute()
     print(f'Event Created')
 
 
@@ -55,28 +61,19 @@ def publish_events(events: List[Event], service) -> None:
             },
             'end': {
                 'date': e.date.isoformat()
+            },
+            'reminders': {
+                'useDefault': False
             }
         }
-        publish_event(event)
+        publish_event(event, service)
 
 
 # add all University of Guelph calendar events to user calendar
 def main() -> None:
 
     service = build('calendar', 'v3', credentials=get_credentials())
-    # publish_events(scraper.get_events, service)
-
-    event = {
-        'summary': 'Test Event',
-        'start': {
-            'date': '2021-07-18'
-        },
-        'end': {
-            'date': '2021-07-18'
-        }
-    }
-
-    publish_event(event, service)
+    publish_events(scraper.get_events(), service)
 
 
 if __name__ == '__main__':

@@ -1,94 +1,67 @@
-from time import sleep
+# from event import Event
+# from scraper import get_events
 
-from selenium import webdriver
-from selenium.webdriver.chrome.webdriver import WebDriver
+# CAL_API_NAME = 'calendar'
+# CAL_API_VERSION = 'v3'
+# SCOPES = ['https://www.googleapis.com/auth/calendar']
 
-from google.oauth2 import service_account
+# def main():
+#     print('hello')
 
-from .event import Event
-
-# from googleapiclient.discovery import build
-# from google_auth_oauthlib.flow import InstalledAppFlow
-# from google.auth.transport.requests import Request
-# from google.oauth2.credentials import Credentials
-
-GUELPH_CALENDAR_URL = 'https://calendar.uoguelph.ca/undergraduate-calendar/schedule-dates/'
-GOOGLE_CAL_API_KEY = 'AIzaSyBc1zvQYjU-1CwSQ89WTb2cOnffjbsLLu4'
-SCOPES = ['https://www.googleapis.com/auth/calendar']
-SERVICE_ACCOUNT_FILE = 'service_account.json'
-
-
-
-def filter_table(table: dict) -> bool:
-    phrases_to_filter = ['D.V.M.', '6 Week Format', 'Session']
-    for phrase in phrases_to_filter:
-        if phrase in table['title']:
-            return False
-    return True
-
-
-def get_year(title: str) -> int:
-    # return the first string that casts to a int successfully
-    for string in title.split():
-        try:
-            return int(string)
-        except:
-            continue
-    return 0
-
-
-def get_events(driver: WebDriver) -> list:
-    raw_tables = driver.find_elements_by_css_selector('.tbl_calendar')
-    raw_headers = driver.find_elements_by_css_selector('.page_content h2')[1:]
-
-    unfiltered_data = [{
-        'title': raw_headers[i].text, 
-        'table': raw_tables[i],
-        'year': get_year(raw_headers[i].text)
-    } for i in range(len(raw_tables))]
-
-    # get rid of unwanted tables
-    data = filter(filter_table, unfiltered_data)
-
-    events = []
-    for table in data:
-        rows = table['table'].find_elements_by_css_selector('tbody tr')
-        for row in rows:
-            date = row.find_element_by_css_selector('td.column0').text + ', ' + str(table['year'])
-            row_events = [event.text for event in row.find_elements_by_css_selector('td.column1 li')]
-            for event in row_events:
-                e = Event(date, event)
-                events.append(e)
-                
-    return events
-
-
-def get_credentials():
-    return service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-
-
-def main() -> None:
-    opts = webdriver.ChromeOptions()
-    opts.headless = True
-    driver = webdriver.Chrome(options=opts)
-    driver.get(GUELPH_CALENDAR_URL)
-
-    sleep(1)
-
-    # creds = get_credentials()
-    events = get_events(driver)
+# if __name__ == '__main__':
+#     main()
     
-    for e in events:
-        event = {
-            'summary': e.title,
-            'start': {
-                'date': e.date.isoformat()
-            },
-            'end': {
-                'date': e.date.isoformat()
-            }
-        }
-        print(event)
+import datetime
+import os.path
+
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+
+# If modifying these scopes, delete the file token.json.
+SCOPES = ['https://www.googleapis.com/auth/calendar']
+API_VERSION = 'v3'
+
+
+def main():
+    """
+    Shows basic usage of the Google Calendar API.
+    Prints the start and name of the next 10 events on the user's calendar.
+    """
+    creds = None
+    # The file token.json stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    if os.path.exists('token.json'):
+        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open('token.json', 'w') as token:
+            token.write(creds.to_json())
+
+    service = build('calendar', API_VERSION, credentials=creds)
+
+    # Call the Calendar API
+    now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
+    print('Getting the upcoming 10 events')
+    events_result = service.events().list(calendarId='primary', timeMin=now,
+                                        maxResults=10, singleEvents=True,
+                                        orderBy='startTime').execute()
+    events = events_result.get('items', [])
+
+    if not events:
+        print('No upcoming events found.')
+    for event in events:
+        start = event['start'].get('dateTime', event['start'].get('date'))
+        print(start, event['summary'])
 
 
 if __name__ == '__main__':

@@ -1,67 +1,82 @@
-# from event import Event
-# from scraper import get_events
-
-# CAL_API_NAME = 'calendar'
-# CAL_API_VERSION = 'v3'
-# SCOPES = ['https://www.googleapis.com/auth/calendar']
-
-# def main():
-#     print('hello')
-
-# if __name__ == '__main__':
-#     main()
-    
-import datetime
 import os.path
+
+from typing import List
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
-# If modifying these scopes, delete the file token.json.
+import scraper
+from event import Event
+
+
 SCOPES = ['https://www.googleapis.com/auth/calendar']
-API_VERSION = 'v3'
+CLIENT_SCRET_FILE = 'credentials.json'
 
 
-def main():
-    """
-    Shows basic usage of the Google Calendar API.
-    Prints the start and name of the next 10 events on the user's calendar.
-    """
+# get google OAuth2 credentials to access google calendar api
+def get_credentials():
+
     creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
+
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
+                CLIENT_SCRET_FILE, SCOPES)
             creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
 
-    service = build('calendar', API_VERSION, credentials=creds)
+    return creds
 
-    # Call the Calendar API
-    now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
-    print('Getting the upcoming 10 events')
-    events_result = service.events().list(calendarId='primary', timeMin=now,
-                                        maxResults=10, singleEvents=True,
-                                        orderBy='startTime').execute()
-    events = events_result.get('items', [])
 
-    if not events:
-        print('No upcoming events found.')
-    for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        print(start, event['summary'])
+# publish event to user's calendar
+# * param: event - event dictionary containing relevant event information
+# * param: service - google OAuth2 service client to access calendar
+def publish_event(event: dict, service) -> None:
+    created_event = service.events().insert(calendarId='primary', body=event).execute()
+    print(f'Event Created')
+
+
+# publish a list of events to user's calendar
+# * param: events - list of Event objects to add to user's calendar
+# * param: service - google OAuth2 service client to access calendar
+def publish_events(events: List[Event], service) -> None:
+    for e in events:
+        event = {
+            'summary': e.title,
+            'start': {
+                'date': e.date.isoformat()
+            },
+            'end': {
+                'date': e.date.isoformat()
+            }
+        }
+        publish_event(event)
+
+
+# add all University of Guelph calendar events to user calendar
+def main() -> None:
+
+    service = build('calendar', 'v3', credentials=get_credentials())
+    # publish_events(scraper.get_events, service)
+
+    event = {
+        'summary': 'Test Event',
+        'start': {
+            'date': '2021-07-18'
+        },
+        'end': {
+            'date': '2021-07-18'
+        }
+    }
+
+    publish_event(event, service)
 
 
 if __name__ == '__main__':

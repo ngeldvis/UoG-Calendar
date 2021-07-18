@@ -8,7 +8,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
 import scraper
-from event import Event
+from classes.event import Event
 
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']

@@ -6,7 +6,7 @@ from dateutil.parser import parse as parse_datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import WebDriver
 
-from event import Event
+from classes.event import Event
 
  
 # Includes all web-scraping functionality of the app

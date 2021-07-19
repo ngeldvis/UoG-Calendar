@@ -4,7 +4,9 @@
 
 Web scraper to gets events from the University of Guelph's [Schedule of Dates](https://calendar.uoguelph.ca/undergraduate-calendar/schedule-dates/) page and add them to a user's google calendar.
 
-### Click *[here](https://calendar.google.com/calendar/u/0?cid=dDZnN2o0MmI1YTZjOG5nOGlnNDVwdmYyODRAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ)* to add the events to your own calendar.
+The calendar includes only the events from the standard 12 week undergraduate tables meaning the 6 week summer session events and all D.V.M. semester events are not included
+
+### Click [here](https://calendar.google.com/calendar/u/0?cid=dDZnN2o0MmI1YTZjOG5nOGlnNDVwdmYyODRAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ) to add the events to your own calendar.
 
 You can also download the most recent `.ics` file from the `exported_calendars` directory
 

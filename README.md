@@ -8,7 +8,7 @@ The calendar includes only the events from the standard 12 week undergraduate ta
 
 ### Click [here](https://calendar.google.com/calendar/u/0?cid=dDZnN2o0MmI1YTZjOG5nOGlnNDVwdmYyODRAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ) to add the events to your own calendar.
 
-You can also download the most recent `.ics` file from the `exported_calendars` directory
+You can also download the most recent `.ics` file from the `calendars` directory
 
 ### Requirements
 

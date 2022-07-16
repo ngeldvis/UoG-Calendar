@@ -1,13 +1,13 @@
 import os
 import os.path
 
-from dotenv import load_dotenv
-from typing import List
-
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+
+from dotenv import load_dotenv
+from typing import List
 
 import scraper
 from classes.event import Event

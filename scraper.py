@@ -1,11 +1,6 @@
-from email.parser import Parser
-from tarfile import DEFAULT_FORMAT
-from time import sleep
-from datetime import date, datetime
-from typing import List
 from dateutil.parser import parse as parse_datetime, ParserError
-
-from playwright.sync_api import sync_playwright, Page, Browser
+from playwright.sync_api import sync_playwright, Browser
+from typing import List
 
 from classes.event import Event
  

@@ -72,7 +72,8 @@ def publish_events(events: List[Event], service) -> None:
 # add all University of Guelph calendar events to user calendar
 def main() -> None:
 
-    service = build('calendar', 'v3', credentials=get_credentials())
+    creds = get_credentials()
+    service = build('calendar', 'v3', credentials=creds)
     publish_events(scraper.get_events(), service)
 
 

@@ -1,77 +1,82 @@
+from email.parser import Parser
+from tarfile import DEFAULT_FORMAT
 from time import sleep
 from datetime import date, datetime
 from typing import List
-from dateutil.parser import parse as parse_datetime
+from dateutil.parser import parse as parse_datetime, ParserError
 
-from selenium import webdriver
-from selenium.webdriver.chrome.webdriver import WebDriver
+from playwright.sync_api import sync_playwright, Page, Browser
 
 from classes.event import Event
-
  
 # Includes all web-scraping functionality of the app
 
+URL_PREFIX = 'https://calendar.uoguelph.ca'
+GUELPH_CALENDAR_URL = f'{URL_PREFIX}/undergraduate-calendar/schedule-dates/'
 
-GUELPH_CALENDAR_URL = 'https://calendar.uoguelph.ca/undergraduate-calendar/schedule-dates/'
-
-
-# gets the Selenium webdriver used to scrape the website
-def get_webdriver():
-    opts = webdriver.ChromeOptions()
-    opts.headless = True
-    driver = webdriver.Chrome(options=opts)
-    driver.get(GUELPH_CALENDAR_URL)
-    return driver
-
+DEFAULT_FILTERS = ['D.V.M.', '6 Week Format', 'Session', 'Reading']
 
 # filter function to filter out unwanted calendars
 # * param: table - dictionary that includes title, year, and html table object
-def filter_table(table: dict) -> bool:
-    phrases_to_filter = ['D.V.M.', '6 Week Format', 'Session']
-    for phrase in phrases_to_filter:
-        if phrase in table['title']:
+def includeCalender(text: str, filters: List[str]) -> bool:
+    for phrase in filters:
+        if phrase in text:
             return False
     return True
 
 
-# get the year of the calender from it's header
-# * param: title - title of a calendar
-def get_year(title: str) -> int:
-    for string in title.split():
+# some string with a year in it and no other numbers before the year
+def get_year(title: str) -> str:
+    for token in title.split():
         try:
-            return int(string)
+            int(token)
+            return token
         except ValueError:
             continue
-    return 0
+    return None
 
+# get the events from a specific page
+def get_page_events(browser: Browser, url: str, year: str) -> List[Event]:
 
-# gets a list of all wanted guelph events on the webpage
-def get_events() -> List[Event]:
-
-    driver = get_webdriver()
-
-    raw_tables = driver.find_elements_by_css_selector('.tbl_calendar')
-    raw_headers = driver.find_elements_by_css_selector('.page_content h2')[1:]
-
-    unfiltered_data = [{
-        'title': raw_headers[i].text, 
-        'table': raw_tables[i],
-        'year': get_year(raw_headers[i].text)
-    } for i in range(len(raw_tables))]
-
-    data = filter(filter_table, unfiltered_data)
+    page = browser.new_page()
+    page.goto(URL_PREFIX + url)
 
     events = []
-    for table in data:
-        rows = table['table'].find_elements_by_css_selector('tbody tr')
-        for row in rows:
-            date_str = row.find_element_by_css_selector('td.column0').text + ', ' + str(table['year'])
-            date = parse_datetime(date_str).date()
-            row_events = [event.text for event in row.find_elements_by_css_selector('td.column1 li')]
-            for event in row_events:
-                e = Event(date, event)
-                events.append(e)
-   
+
+    table = page.query_selector('.tbl_calendar')
+    for row in table.query_selector_all('tbody tr'):
+        try: # if parser can't determine a date, skip
+            col1_text = row.query_selector('.column0').inner_text()
+            event_date = parse_datetime(col1_text + ' ' + year).date()
+        except ParserError:
+            continue
+
+        for event in row.query_selector_all('.column1 li'):
+            event_title = event.inner_text()
+            events.append(Event(event_date, event_title))
+
+    return events
+
+# gets a list of all guelph events on their site
+def get_events() -> List[Event]:
+
+    events = []
+
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        page = browser.new_page()
+
+        page.goto(GUELPH_CALENDAR_URL)
+
+        links = page.query_selector_all('.sitemap a')
+        
+        for a in links:
+            a_href, a_text = a.get_attribute('href'), a.inner_text()
+
+            if includeCalender(a_text, DEFAULT_FILTERS) and a_href:
+                new_events = get_page_events(browser, a_href, get_year(a_text))
+                events.extend(new_events)
+
     return events
 
 

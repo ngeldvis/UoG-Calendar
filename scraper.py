@@ -1,3 +1,4 @@
+import datetime
 from dateutil.parser import parse as parse_datetime, ParserError
 from playwright.sync_api import sync_playwright, Browser
 from typing import List
@@ -75,9 +76,43 @@ def get_events() -> List[Event]:
     return events
 
 
+def save_events_to_ics(events: List[Event]) -> None:
+    today = datetime.datetime.today()
+    today_str = today.strftime("%Y-%m-%d")
+
+    with open(f'calendars/events-{today_str}.ics', 'w') as file:
+        # write the ics header
+        file.write('BEGIN:VCALENDAR\n')
+        file.write('VERSION:2.0\n')
+        file.write('PRODID:-//Guelph Calendar Scraper//EN\n')
+        file.write('CALSCALE:GREGORIAN\n')
+        file.write('METHOD:PUBLISH\n')
+        file.write('X-WR-CALNAME:UoG Events\n')
+        file.write('X-WR-TIMEZONE:America/Toronto\n')
+        file.write('X-WR-CALDESC:Event\'s from the University of Guelph\'s official course calendar. Not affiliated with the University of Guelph\n')
+
+        # write each event to the file
+        for event in events:
+            file.write('BEGIN:VEVENT\n')
+            file.write(f'DTSTART;VALUE=DATE:{event.date.strftime("%Y%m%d")}\n')
+            file.write(f'DTSTAMP:{today.strftime("%Y%m%dT%H%M%SZ")}\n')
+            file.write(f'CREATED:{today.strftime("%Y%m%dT%H%M%SZ")}\n')
+            file.write('DESCRIPTION:\n')
+            file.write(f'LAST-MODIFIED:{today.strftime("%Y%m%dT%H%M%SZ")}\n')
+            file.write('LOCATION:\n')
+            file.write('SEQUENCE:0\n')
+            file.write('STATUS:CONFIRMED\n')
+            file.write(f'SUMMARY:{event.title}\n')
+            file.write('TRANSP:OPAQUE\n')
+            file.write('END:VEVENT\n')
+
+        # write the ics footer
+        file.write('END:VCALENDAR\n')
+
 # get all the events and print them to the console
-def main() -> None:    
-    for event in get_events():
+def main() -> None:
+    events = get_events()
+    for event in events:
         print(event)
 
 
